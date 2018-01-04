@@ -38,11 +38,7 @@ public class PlantUtils {
 
     public enum PlantStatus {ALIVE, DYING, DEAD}
 
-    ;
-
     public enum PlantSize {TINY, JUVENILE, FULLY_GROWN}
-
-    ;
 
     /**
      * Returns the corresponding image resource of the plant given the plant's age and
@@ -81,14 +77,32 @@ public class PlantUtils {
      * @return Image Resource to the correct plant image
      */
     public static int getPlantImgRes(Context context, int type, PlantStatus status, PlantSize size) {
-        Resources res = context.getResources();
-        TypedArray plantTypes = res.obtainTypedArray(R.array.plant_types);
+
+        TypedArray plantTypes = context.getResources().obtainTypedArray(R.array.plant_types);
         String resName = plantTypes.getString(type);
-        if (status == PlantStatus.DYING) resName += "_danger";
-        else if (status == PlantStatus.DEAD) resName += "_dead";
-        if (size == PlantSize.TINY) resName += "_1";
-        else if (size == PlantSize.JUVENILE) resName += "_2";
-        else if (size == PlantSize.FULLY_GROWN) resName += "_3";
+
+        switch (status) {
+            case DYING:
+                resName += "_danger";
+                break;
+            case DEAD:
+                resName += "_dead";
+                break;
+        }
+
+        switch (size) {
+            case TINY:
+                resName += "_1";
+                break;
+            case JUVENILE:
+                resName += "_2";
+                break;
+            case FULLY_GROWN:
+                resName += "_3";
+                break;
+        }
+
+        plantTypes.recycle();
         return context.getResources().getIdentifier(resName, "drawable", context.getPackageName());
     }
 
@@ -100,14 +114,17 @@ public class PlantUtils {
      * @return The plant type display name
      */
     public static String getPlantTypeName(Context context, int type) {
-        Resources res = context.getResources();
-        TypedArray plantTypes = res.obtainTypedArray(R.array.plant_types);
+
+        TypedArray plantTypes = context.getResources().obtainTypedArray(R.array.plant_types);
         String resName = plantTypes.getString(type);
         int resId = context.getResources().getIdentifier(resName, "string", context.getPackageName());
+
         try {
             return context.getResources().getString(resId);
         } catch (Resources.NotFoundException ex) {
             return context.getResources().getString(R.string.unknown_type);
+        } finally {
+            plantTypes.recycle();
         }
     }
 
