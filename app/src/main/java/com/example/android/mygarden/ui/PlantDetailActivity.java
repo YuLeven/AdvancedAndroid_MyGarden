@@ -31,6 +31,7 @@ import android.widget.TextView;
 
 import com.example.android.mygarden.R;
 import com.example.android.mygarden.provider.PlantContract;
+import com.example.android.mygarden.service.PlantWateringService;
 import com.example.android.mygarden.utils.PlantUtils;
 
 import static com.example.android.mygarden.provider.PlantContract.BASE_CONTENT_URI;
@@ -72,6 +73,7 @@ public class PlantDetailActivity extends AppCompatActivity
         // Update the watered timestamp
         contentValues.put(PlantContract.PlantEntry.COLUMN_LAST_WATERED_TIME, timeNow);
         getContentResolver().update(SINGLE_PLANT_URI, contentValues, null, null);
+        PlantWateringService.startActionUpdatePlantWidgets(this);
         cursor.close();
     }
 
@@ -125,6 +127,7 @@ public class PlantDetailActivity extends AppCompatActivity
         Uri SINGLE_PLANT_URI = ContentUris.withAppendedId(
                 BASE_CONTENT_URI.buildUpon().appendPath(PATH_PLANTS).build(), mPlantId);
         getContentResolver().delete(SINGLE_PLANT_URI, null, null);
+        PlantWateringService.startActionUpdatePlantWidgets(this);
         finish();
     }
 }
