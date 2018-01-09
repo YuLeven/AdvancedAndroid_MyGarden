@@ -3,6 +3,7 @@ package com.example.android.mygarden.service;
 import android.app.IntentService;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.Context;
@@ -15,6 +16,7 @@ import com.example.android.mygarden.provider.PlantContract;
 import com.example.android.mygarden.utils.PlantUtils;
 
 import static com.example.android.mygarden.provider.PlantContract.BASE_CONTENT_URI;
+import static com.example.android.mygarden.provider.PlantContract.INVALID_PLANT_ID;
 import static com.example.android.mygarden.provider.PlantContract.PATH_PLANTS;
 
 /**
@@ -27,6 +29,7 @@ public class PlantWateringService extends IntentService {
 
     public static final String ACTION_WATER_PLANTS = "com.example.android.mygarden.service.action.water_plants";
     public static final String ACTION_UPDATE_PLANT_WIDGET = "com.example.android.mygarden.service.action.update_plant_widgets";
+    public static final String EXTRA_PLANT_ID = "com.example.andorid.mygarden.service.identifier.plant";
 
     public PlantWateringService() {
         super("PlantWateringService");
@@ -38,9 +41,10 @@ public class PlantWateringService extends IntentService {
      *
      * @see IntentService
      */
-    public static void startActionWaterPlants(Context context) {
+    public static void startActionWaterPlants(Context context, long plantId) {
         Intent intent = new Intent(context, PlantWateringService.class);
         intent.setAction(ACTION_WATER_PLANTS);
+        intent.putExtra(EXTRA_PLANT_ID, plantId);
         context.startService(intent);
     }
 
@@ -57,8 +61,12 @@ public class PlantWateringService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
-            switch (intent.getAction()) {
-                case ACTION_WATER_PLANTS: handleActionWaterPlants();
+
+            final String action = intent.getAction();
+            if (action == null) return;
+
+            switch (action) {
+                case ACTION_WATER_PLANTS: handleActionWaterPlant(intent.getLongExtra(EXTRA_PLANT_ID, INVALID_PLANT_ID));
                 case ACTION_UPDATE_PLANT_WIDGET: handleActionUpdatePlants();
             }
         }
@@ -67,7 +75,10 @@ public class PlantWateringService extends IntentService {
     /**
      * Water plants in a background thread (just imagine how nice must be in there!)
      */
-    private void handleActionWaterPlants() {
+    private void handleActionWaterPlant(long plantId) {
+
+        Uri PLANT_URI = ContentUris.withAppendedId(BASE_CONTENT_URI.buildUpon()
+                .appendPath(PATH_PLANTS).build(), plantId);
 
         // Gets the current time
         long timeNow = System.currentTimeMillis();
@@ -77,12 +88,15 @@ public class PlantWateringService extends IntentService {
         ContentValues contentValues = new ContentValues();
         contentValues.put(PlantContract.PlantEntry.COLUMN_LAST_WATERED_TIME, timeNow);
 
-        // Update only plants that are still alive
+        // Update the passed plant (by its ID)
         getContentResolver().update(
-                buildPlantsURI(),
+                PLANT_URI,
                 contentValues,
                 PlantContract.PlantEntry.COLUMN_LAST_WATERED_TIME+">?",
                 new String[]{String.valueOf(timeNow - PlantUtils.MAX_AGE_WITHOUT_WATER)});
+
+        // Updates the widget
+        startActionUpdatePlantWidgets(this);
     }
 
     private void handleActionUpdatePlants() {
@@ -101,6 +115,8 @@ public class PlantWateringService extends IntentService {
 
             // Gets the plant details
             int imgRes = R.drawable.grass;
+            long plantId = INVALID_PLANT_ID;
+            boolean canWater = false;
 
             if (cursor != null && cursor.getCount() > 0) {
                 cursor.moveToFirst();
@@ -108,6 +124,9 @@ public class PlantWateringService extends IntentService {
                 long wateredAt = cursor.getLong(cursor.getColumnIndex(PlantContract.PlantEntry.COLUMN_LAST_WATERED_TIME));
                 long createdAt = cursor.getLong(cursor.getColumnIndex(PlantContract.PlantEntry.COLUMN_CREATION_TIME));
                 int plantType = cursor.getInt(cursor.getColumnIndex(PlantContract.PlantEntry.COLUMN_PLANT_TYPE));
+                plantId = cursor.getLong(cursor.getColumnIndex(PlantContract.PlantEntry._ID));
+                canWater = (now - wateredAt) > PlantUtils.MIN_AGE_BETWEEN_WATER
+                                && (now - wateredAt) < PlantUtils.MAX_AGE_WITHOUT_WATER;
 
                 imgRes = PlantUtils.getPlantImageRes(
                         this,
@@ -119,7 +138,7 @@ public class PlantWateringService extends IntentService {
 
             AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
             int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(this, PlantWidgetProvider.class));
-            PlantWidgetProvider.updatePlantWidgets(this, appWidgetManager, imgRes, appWidgetIds);
+            PlantWidgetProvider.updatePlantWidgets(this, appWidgetManager, imgRes, plantId, appWidgetIds, canWater);
 
         } finally {
             if (cursor != null)
