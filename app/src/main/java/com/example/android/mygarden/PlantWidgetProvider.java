@@ -142,6 +142,7 @@ public class PlantWidgetProvider extends AppWidgetProvider {
         Intent intent = new Intent(context, GridWidgetService.class);
         views.setRemoteAdapter(R.id.widget_grid_view, intent);
 
+        // Set the PlantDetailActivity intent to launch when clicked
         Intent appIntent = new Intent(context, PlantDetailActivity.class);
         PendingIntent appPendingIntent = PendingIntent.getActivity(context, 0, appIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         views.setPendingIntentTemplate(R.id.widget_grid_view, appPendingIntent);

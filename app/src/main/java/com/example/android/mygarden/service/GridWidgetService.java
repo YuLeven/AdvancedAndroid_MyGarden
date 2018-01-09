@@ -1,8 +1,10 @@
 package com.example.android.mygarden.service;
 
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -10,6 +12,7 @@ import android.widget.RemoteViewsService;
 
 import com.example.android.mygarden.R;
 import com.example.android.mygarden.provider.PlantContract;
+import com.example.android.mygarden.ui.PlantDetailActivity;
 import com.example.android.mygarden.utils.PlantUtils;
 
 import static com.example.android.mygarden.provider.PlantContract.BASE_CONTENT_URI;
@@ -106,6 +109,13 @@ class GridRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
         views.setTextViewText(R.id.widget_plant_id, Long.toString(plantId));
         // Hide the watter button in GridView mode
         views.setViewVisibility(R.id.widget_water_button, View.GONE);
+
+        // Fill in the template to handle each plant individually
+        Bundle extras = new Bundle();
+        extras.putLong(PlantDetailActivity.EXTRA_PLANT_ID, plantId);
+        Intent fillInIntent = new Intent();
+        fillInIntent.putExtras(extras);
+        views.setOnClickFillInIntent(R.id.widget_plant_image, fillInIntent);
 
         return views;
     }
