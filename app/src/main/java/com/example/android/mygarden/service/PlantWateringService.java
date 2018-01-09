@@ -140,6 +140,9 @@ public class PlantWateringService extends IntentService {
             int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(this, PlantWidgetProvider.class));
             PlantWidgetProvider.updatePlantWidgets(this, appWidgetManager, imgRes, plantId, appWidgetIds, canWater);
 
+            // Notifies the updates the GridView
+            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_grid_view);
+
         } finally {
             if (cursor != null)
                 cursor.close();
